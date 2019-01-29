@@ -329,7 +329,7 @@ TP:56207, FP:683, FN:2653, TP:1860, Balanced Accuracy:0.7000685369898962
 Predicting OR_outside label  
 TP:27420, FP:461, FN:473, TP:1939, Balanced Accuracy:0.8936813115894173
 **************************************************
-Predicting **BATHING_-_SHOWER label**  
+Predicting **BATHING_-_SHOWER label**
 TP:39872, FP:26, FN:275, TP:117, Balanced Accuracy:0.6489088630088358
 **************************************************
 Predicting **DRESSING label**  
@@ -338,7 +338,7 @@ TP:41120, FP:17, FN:406, TP:74, Balanced Accuracy:0.5768767066955134
 Predicting DRINKING__ALCOHOL_ label  
 TP:13844, FP:22, FN:106, TP:204, Balanced Accuracy:0.8282389506939695
 **************************************************
-Predicting **PHONE_IN_HAND label**  
+Predicting **PHONE_IN_HAND label**
 TP:24858, FP:501, FN:1456, TP:1473, Balanced Accuracy:0.7415728574003698
 **************************************************
 Predicting **FIX_restaurant label**  
