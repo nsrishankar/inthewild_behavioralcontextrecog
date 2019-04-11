@@ -16,7 +16,7 @@
  
 
 #### Mix
-- >kip-gram "word" embeddings for sequences.
+- Skip-gram "word" embeddings for sequences.
 - T-SNE for labels in action space from embeddings above.
 - > [Working on] LSTM sequence prediction followed by sensor predictions.
 - > [Working on] Autoregressive, Signal-magnitude Area, TIlt-angle, Linear-Discriminant Analysis for hierarchical network based on embedding.
