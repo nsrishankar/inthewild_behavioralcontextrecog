@@ -11,9 +11,11 @@
 #### Feature Engineering
 - Overlapping windows for moving averages (5-minute,30-minute,1-hour,3-hour,5-hour,1-day,2-day windows).
 - Overlapping windows for exponentially weighted moving averages (_Above windows, no signifiant improvements_).
-- > [Try] Sequentially stacked windows for moving averages.
-- > [Try] SSA Decomposition, Neural decomposition.
- 
+- Sequentially stacked windows for moving averages.
+- For features: not zero imputing values: Using timestamp data to interpolate. (Compare with original to see difference).
+- > [Working on] SSA Decomposition.
+- > [Working on] Missing label estimation through exclusive label (and something else)?
+- > [Try] Neural decomposition.
 
 #### Mix
 - Skip-gram "word" embeddings for sequences.
