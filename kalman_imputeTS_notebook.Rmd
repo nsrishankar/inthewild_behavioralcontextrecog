@@ -1,0 +1,70 @@
+---
+title: "Kalman ImputeTS"
+output: html_notebook
+---
+
+Simplistic notebook to impute user time-series data using the imputeTS toolbox.
+
+Imports:
+```{r}
+library(imputeTS) # Imputation package
+library(reticulate) # Python interface package
+```
+Get required files
+```{r}
+getwd() # Current working directory
+data_path = 'x_data/'
+files <- list.files(path=data_path) # Necessary files that need to be imputed
+```
+
+Information about missing values
+```{r}
+source_python('utils.py')
+sample_data <- read_pkl(file.path(data_path,files[1]))
+```
+
+
+```{r}
+printmissingstats <- function(data){
+# Print the statistics of missing values for each column in the test array
+  for(i in 1:ncol(data)){
+    stats <- statsNA(data[,i],bins=4,printOnly=FALSE)
+  
+    if(stats[2]>0){ # Only print if there are actually NaNs in the column
+      cat("Column: ",i)
+      statsNA(data[,i],bins=4,printOnly=TRUE)
+    }
+  }  
+}
+
+shape <- function(data){
+  ncols <- ncol(data)
+  nrows <- nrow(data)
+  
+  print(c(nrows,ncols))
+}
+
+printmissingstats(sample_data)
+```
+
+Imputation test: na.kalman
+```{r}
+sample_data_kalman <- na.kalman(sample_data,model='StructTS',smooth=TRUE,type='trend')
+
+# And checking effect of imputation
+printmissingstats(sample_data_kalman) # Shows that the imputation works on all columns except those where there are no values at all (empty column)
+```
+
+Imputation effect on test
+
+```{r}
+for(i in 1:ncol(sample_data)){
+  stats <- statsNA(sample_data[,i],bins=4,printOnly=FALSE)
+  
+  if(stats[2]>0){ # Only print if there are actually NaNs in the column
+    plotNA.imputations(sample_data[,i],sample_data_kalman[,i],legend=TRUE,main="Visualization Imputed Values", xlab="Time",ylab="Value",colLines='aliceblue',colWithImputations='red',colWithNA='blue')
+  }
+}
+
+```
+
