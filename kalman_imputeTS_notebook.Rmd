@@ -9,11 +9,13 @@ Imports:
 ```{r}
 library(imputeTS) # Imputation package
 library(reticulate) # Python interface package
+library(stringr) # String modifications
+library(forecast) # Forecasting time-series library
 ```
 Get required files
 ```{r}
 getwd() # Current working directory
-data_path = 'x_data/'
+data_path <- 'x_data/'
 files <- list.files(path=data_path) # Necessary files that need to be imputed
 ```
 
@@ -31,7 +33,7 @@ printmissingstats <- function(data){
     stats <- statsNA(data[,i],bins=4,printOnly=FALSE)
   
     if(stats[2]>0){ # Only print if there are actually NaNs in the column
-      cat("Column: ",i)
+      cat('Column: ',i)
       statsNA(data[,i],bins=4,printOnly=TRUE)
     }
   }  
@@ -46,6 +48,11 @@ shape <- function(data){
 
 printmissingstats(sample_data)
 ```
+```{r}
+for(i in 1:ncol(sample_data)){
+  plotNA.distribution(sample_data[,i],colPoints='steelblue',colBackgroundMV='indianred2',main='Distribution of NAs',xlab='Time',ylab='Value',col='aliceblue')
+}
+```
 
 Imputation test: na.kalman
 ```{r}
@@ -56,15 +63,148 @@ printmissingstats(sample_data_kalman) # Shows that the imputation works on all c
 ```
 
 Imputation effect on test
-
 ```{r}
 for(i in 1:ncol(sample_data)){
   stats <- statsNA(sample_data[,i],bins=4,printOnly=FALSE)
   
   if(stats[2]>0){ # Only print if there are actually NaNs in the column
-    plotNA.imputations(sample_data[,i],sample_data_kalman[,i],legend=TRUE,main="Visualization Imputed Values", xlab="Time",ylab="Value",colLines='aliceblue',colWithImputations='red',colWithNA='blue')
+    plotNA.imputations(sample_data[,i],sample_data_kalman[,i],legend=TRUE,main='Visualization Imputed Values', xlab='Time',ylab='Value',colLines='aliceblue',colWithImputations='red',colWithNA='blue')
   }
 }
 
 ```
 
+Perform Kalman imputations and save new data
+```{r}
+folder <- 'ximpute_kalman'
+for(file in files){
+  fname <- unlist(strsplit(file,".",fixed=TRUE))[1][1] 
+  data <- read_pkl(file.path(data_path,file))
+  data_impute <- na.kalman(data,model='StructTS',smooth=TRUE,type='trend')
+  file_path <- file.path(folder,paste(fname,'csv',sep='.')) # Without .pkl ending
+  
+  write.csv(data_impute,file=file_path)
+  
+}
+```
+
+Perform Seasonally-Decomposed (seadec) imputations and save new data
+```{r}
+# Remove seasonal component of the time series and imputes the de-seasonalized series and then re-adds them
+# Going through the different algorithms: interpolation, mean, random, kalman, ma
+folder <- 'ximpute_seadec_ma' 
+for(file in files){
+  fname <- unlist(strsplit(file,'.',fixed=TRUE))[1][1] 
+  data <- read_pkl(file.path(data_path,file))
+  data_impute <- na.seadec(data,algorithm='ma')
+  file_path <- file.path(folder,paste(fname,'csv',sep='.')) # Without .pkl ending
+  
+  write.csv(data_impute,file=file_path)
+  
+}
+```
+
+Perform Seasonally-Split (seasplit) imputations and save new data
+```{r}
+# Split a dataset into seasons and then performs imputations
+# Going through the different algorithms: interpolation, mean, random, kalman
+folder <- 'ximpute_seasplit_kalman' 
+for(file in files){
+  fname <- unlist(strsplit(file,'.',fixed=TRUE))[1][1] 
+  data <- read_pkl(file.path(data_path,file))
+  data_impute <- na.seasplit(data,algorithm='kalman')
+  file_path <- file.path(folder,paste(fname,'csv',sep='.')) # Without .pkl ending
+  
+  write.csv(data_impute,file=file_path)
+  
+}
+```
+
+Auto-Arima test
+```{r}
+sample_data_arima <- sample_data
+for(i in 1:ncol(sample_data_arima)){
+  data <- sample_data_arima[,i] # Get the required column
+  na_count <- sum(is.na(data)) # Count NaNs in a column
+  
+  if(length(data)>na_count){ # Only impute if the column doesn't consist of all NaNs
+    fit <- auto.arima(data,D=1) # Fit an ARIMA model to each feature in the column
+    model <- fit$model
+  
+    # Kalman smooth
+    kalman_run <- KalmanRun(data,model) # Pass data to the Kalman run feature
+    
+    id.na <- which(is.na(data)) # Which is a NaN  
+    
+    for(nan in id.na){
+      sample_data_arima[nan,i] <- model$Z %*% kalman_run$states[nan,]
+      
+    }
+    
+  }
+}
+```
+
+```{r}
+for(i in 1:ncol(sample_data)){
+  plotNA.imputations(sample_data[,i],sample_data_arima[,i],legend=TRUE,main='Visualization Imputed Values', xlab='Time',ylab='Value',colLines='aliceblue',colWithImputations='red',colWithNA='blue')
+}
+```
+
+Perform ARIMA fits to obtain a state-space model and then Kalman impute and save new data
+```{r}
+folder <- 'ximpute_arima_kalman'
+for(file in files){
+  fname <- unlist(strsplit(file,".",fixed=TRUE))[1][1]
+  data <- read_pkl(file.path(data_path,file))
+  data_impute <- data  # Copy data
+  
+  for(i in 1:ncol(data_impute)){
+    col_data <- data_impute[,i] # Required column
+    na_count <- sum(is.na(col_data)) # Count NaNs in a column
+    
+    if(length(col_data)>na_count){  # Only impute if the column isn't just a NaN-column
+      fit <- auto.arima(col_data,D=1) # Fit an ARIMA model to feature (each column) and force a seasonality
+      model <- fit$model
+      
+      # Kalman Run
+      kalman_run <- KalmanRun(col_data,model) # Pass data, model to the Kalman Run filter
+      
+      id.na <- which(is.na(col_data)) # Which is a NaN
+      
+      for(nan in id.na){
+        data_impute[nan,i] <- model$Z %*% kalman_run$states[nan,]
+      }
+    }
+  }
+  file_path <- file.path(folder,paste(fname,'csv',sep='.')) # Without .pkl ending
+  
+  write.csv(data_impute,file=file_path)
+  
+}
+```
+
+Auto-Arima test
+```{r}
+sample_data_arima <- sample_data
+for(i in 1:ncol(sample_data_arima)){
+  data <- sample_data_arima[,i] # Get the required column
+  na_count <- sum(is.na(data)) # Count NaNs in a column
+  
+  if(length(data)>na_count){ # Only impute if the column doesn't consist of all NaNs
+    fit <- auto.arima(data,D=1) # Fit an ARIMA model to each feature in the column
+    model <- fit$model
+  
+    # Kalman smooth
+    kalman_run <- KalmanRun(data,model) # Pass data to the Kalman run feature
+    
+    id.na <- which(is.na(data)) # Which is a NaN  
+    
+    for(nan in id.na){
+      sample_data_arima[nan,i] <- model$Z %*% kalman_run$states[nan,]
+      
+    }
+    
+  }
+}
+```
