@@ -5,16 +5,18 @@
 ### NN Work
 #### Classifiers
 - Single class classifiers.
-- Multi label classifiers- MLP {0-Hidden layers, 1-Hidden Layer, 2-Hidden Layers, 2-Hidden Layer with sensor dropout per minibatch}.
+- Multi label classifiers- MLP {0-Hidden layers, 1-Hidden Layer, 2-Hidden Layers, 2-Hidden Layer with sensor dropout per minibatch} along with K-Fold cross-validation.
 - Work done with LSTM/RNN, XGBoost, Decision trees.
 
 #### Feature Engineering
 - Overlapping windows for moving averages (5-minute,30-minute,1-hour,3-hour,5-hour,1-day,2-day windows).
 - Overlapping windows for exponentially weighted moving averages (_Above windows, no signifiant improvements_).
 - Sequentially stacked windows for moving averages.
-- For features: not zero imputing values: Using timestamp data to interpolate. (Compare with original to see difference).
+- For features: not zero imputing values: Using timestamp data to interpolate (ARIMA, Kalman imputations).
+- Missing label estimation through exclusive labels. (Accuracy decrease-unknown)
+- Use of a new label ("Unclassified") if none of the 51 labels are positive(1).
+- > [Working on] Changepoint analysis/ bayesian segmentation for possible label correcting.
 - > [Working on] SSA Decomposition.
-- > [Working on] Missing label estimation through exclusive label (and something else)?
 - > [Try] Neural decomposition.
 
 #### Mix
