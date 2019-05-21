@@ -1,0 +1,67 @@
+---
+title: "changepoint_analysis"
+
+output: 
+  pdf_document: default
+  html_notebook: default
+---
+
+Notebook to analyze various Changepoint methods for label correction. This uses the Kalman-augmented dataset as an input.
+
+Imports:
+```{r}
+library(reticulate) # Python interface package
+library(stringr) # String modifications
+# Various changepoint packages in R
+library(ecp)
+library(changepoint)
+library(InspectChangepoint)
+library(ocp)
+```
+
+Get required files
+```{r}
+# Orig data path consists of the data needed to get the feature names
+# Impute data path consists of the Kalman imputed features (used instead of the original) for changepoint detection
+getwd() # Current working directory
+sample_orig_data_path <- 'orig_extrasensory/00EABED2-271D-49D8-B599-1D4A09240601.features_labels.csv.gz'
+impute_data_path <- 'ximpute_kalman/'
+files <- list.files(path=impute_data_path) # Necessary files that need to be imputed
+```
+
+Testing changepoint on sample data: First renaming columns for the sample data and extracting the required columns
+```{r}
+sample_data <- read.csv(file.path(impute_data_path,files[1]),row.names=1) # Read sample Kalman imputed csv feature file and then remove first index column
+# <-data.frame(sample_data) # Creating a dataframe
+
+headers <- unlist(read.delim('feature_names.txt',header=FALSE)) # Getting header data (feature names)
+sample_data <- data.frame(sample_data)
+colnames(sample_data) <- headers
+
+# Obtain the part of the features that we want to run changepoint detection on (basically sensor features: NOT Phone features/discrete features) Might modify later to actually use discrete features
+sample_data <- sample_data[,0:128]
+```
+
+ECP TEST: ECP_AGGLO
+```{r}
+# ECP  Energy Agglomerative
+ecp_agglo=e.agglo(as.matrix(sample_data),alpha=1,penalty=function(cp,Xts) 0) #O(N^2) computation complexity
+
+print(ecp_agglo$estimates)
+```
+
+ECP TEST: ECP_CP3o (Time consuming)
+```{r}
+# ECP  Pruned Objective (cp3o,cp3o_delta)
+ecp_cp3o=e.cp3o(as.matrix(sample_data),K=2,minsize=1,alpha=1,verbose=TRUE) #O(k*N^2) computation complexity
+
+print(ecp_cp3o$estimates)
+```
+
+ECP TEST: Kernel Change point analysis
+```{r}
+# ECP  Pruned Objective (cp3o,cp3o_delta)
+ecp_kcp=kcpa(as.matrix(sample_data),L=2287) 
+
+print(ecp_kcpa$estimates)
+```
